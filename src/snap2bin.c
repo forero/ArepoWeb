@@ -19,6 +19,11 @@ int main(int argc, char **argv){
   file = H5Fopen (argv[1], H5F_ACC_RDONLY, H5P_DEFAULT);
   fprintf(stdout, "opening file %s\n", argv[1]);
 
+  dset = H5Dopen (file, "Heade");
+  
+  exit(1);
+
+
   /*READ DM coordinates*/
   dset = H5Dopen (file, DM_COORDINATES);
   fprintf(stdout, "getting dataset %s\n", DM_COORDINATES);
