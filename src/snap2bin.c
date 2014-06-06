@@ -26,9 +26,6 @@ int main(int argc, char **argv){
 
   fprintf(stdout, "BoxSize %f\n", box);
 
-  exit(1);
-
-
   /*READ DM coordinates*/
   dset = H5Dopen2(file, DM_COORDINATES,H5P_DEFAULT);
   fprintf(stdout, "getting dataset %s\n", DM_COORDINATES);
