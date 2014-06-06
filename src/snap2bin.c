@@ -1,10 +1,10 @@
-#include "hdf5.h"
+#include <hdf5.h>
 #include <stdio.h>
 #include <stdlib.h>
 #define DM_COORDINATES "/PartType1/Coordinates"
 #define DM_VELOCITIES "/PartType1/Velocities"
 int main(int argc, char **argv){
-  hid_t           file, dset, dcpl, filespace;    /* Handles */
+  hid_t           file, dset, dcpl, filespace,attr, group;    /* Handles */
   hid_t dsetv_id, status_n, memspace;
   H5D_layout_t    layout;
   long long npoints;
@@ -15,17 +15,22 @@ int main(int argc, char **argv){
   int i;
   int n_items;
   FILE *binout;
+  float box;
 
   file = H5Fopen (argv[1], H5F_ACC_RDONLY, H5P_DEFAULT);
   fprintf(stdout, "opening file %s\n", argv[1]);
 
-  dset = H5Dopen (file, "Heade");
-  
+  group = H5Gopen(file, "/Header", H5P_DEFAULT);
+  attr = H5Aopen(group, "BoxSize", H5P_DEFAULT);
+  status_n = H5Aread(attr, H5T_NATIVE_FLOAT, &box);
+
+  fprintf(stdout, "BoxSize %f\n", box);
+
   exit(1);
 
 
   /*READ DM coordinates*/
-  dset = H5Dopen (file, DM_COORDINATES);
+  dset = H5Dopen2(file, DM_COORDINATES,H5P_DEFAULT);
   fprintf(stdout, "getting dataset %s\n", DM_COORDINATES);
   filespace = H5Dget_space (dset);
 
@@ -44,7 +49,7 @@ int main(int argc, char **argv){
 		    H5P_DEFAULT, data_pos);
 
   /*read DM velocities*/
-  dset = H5Dopen (file, DM_VELOCITIES);
+  dset = H5Dopen2(file, DM_VELOCITIES,H5P_DEFAULT);
   fprintf(stdout, "getting dataset %s\n", DM_VELOCITIES);
   filespace = H5Dget_space (dset);
 
