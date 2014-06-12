@@ -128,6 +128,7 @@ int main(int argc, char **argv){
   dump_data_block(file, VORTICITY, gas_vorticity, n_points, 3);
   dump_data_block(file, HELICITY, gas_helicity, n_points, 1);
 
+  H5Gclose (grp);
   H5Fclose (file);  
   return 0;
 }
