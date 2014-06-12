@@ -88,7 +88,7 @@ int main(int argc, char **argv){
     shear_tensor[XY] = -0.5*(gas_gradient[i*9 + YY] + gas_gradient[i*9 + YY]); 
     shear_tensor[XZ] = -0.5*(gas_gradient[i*9 + ZZ] + gas_gradient[i*9 + ZZ]); 
     shear_tensor[XY] = -0.5*(gas_gradient[i*9 + XY] + gas_gradient[i*9 + YX]); 
-    shear_tensor[XZ] = -0.5*(gas_gradient[i*9 + XZ] + gas_gradient[i*9 + YZ]); 
+    shear_tensor[XZ] = -0.5*(gas_gradient[i*9 + XZ] + gas_gradient[i*9 + ZX]); 
     shear_tensor[YZ] = -0.5*(gas_gradient[i*9 + YZ] + gas_gradient[i*9 + ZY]); 
     shear_tensor[YX] = shear_tensor[XY];
     shear_tensor[ZX] = shear_tensor[XZ];
