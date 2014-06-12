@@ -2,11 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #define DM_COORDINATES "/PartType1/Coordinates"
 #define DM_VELOCITIES "/PartType1/Velocities"
 #define GAS_GRADIENT "/PartType0/VelocityGradient"
 #define GAS_VELOCITIES "/PartType0/Velocities"
-#define USAGE "./snap2web.x snapfilename"
+#define EIGENVECTORS "/ShearTensor/Eigenvectors"
+#define USAGE "./snap2web.x snapfilename fileout"
 #define XX  0
 #define XY  1
 #define XZ  2
@@ -37,8 +39,10 @@
 
 int Diagonalise3x3(double *M,double *L,double *vec);
 float * load_data_block(hid_t file, char * block_name, int *n_points, int *n_cols);float *malloc_data(int n_points, int n_cols);
+void dump_data_block(hid_t file, char * block_name, float *data, int n_points, int n_cols);
 int main(int argc, char **argv){
-  hid_t file;
+  char fileout[512];
+  hid_t file, grp;
   float *gas_gradient;
   float *gas_velocity;
   float *gas_eigenvalues;
@@ -53,17 +57,20 @@ int main(int argc, char **argv){
   float helicity;
   int i,j;
 
-  if(argc!=2){
+  if(argc!=3){
     fprintf(stderr, "USAGE:%s\n", USAGE);
-    exit(1);
+    exit(1);    
   }
 
-  file = H5Fopen (argv[1], H5F_ACC_RDONLY, H5P_DEFAULT);
-  fprintf(stdout, "opening file %s\n", argv[1]);
+  /*output filename*/
+  strcpy(fileout, argv[2]);
 
   /*load the input data*/
+  file = H5Fopen (argv[1], H5F_ACC_RDONLY, H5P_DEFAULT);
+  fprintf(stdout, "opening file %s\n", argv[1]);
   gas_gradient = load_data_block(file, GAS_GRADIENT, &n_points, &n_cols);  
   gas_velocity = load_data_block(file, GAS_VELOCITIES, &n_points, &n_cols);  
+  H5Fclose (file);
 
   /*save memory for the outputs*/
   gas_eigenvalues = malloc_data(n_points, 3);
@@ -89,9 +96,7 @@ int main(int argc, char **argv){
     vorticity[0] = gas_gradient[i*9 +ZY] - gas_gradient[i*9 + YZ];
     vorticity[1] = gas_gradient[i*9 +XZ] - gas_gradient[i*9 + ZX];
     vorticity[2] = gas_gradient[i*9 +YX] - gas_gradient[i*9 + XY];
-    if(i<10){
-      //      fprintf(stdout, "%f %f %f\n", vorticity[0], vorticity[1], vorticity[2]);
-    }
+
     /*compute the helicity*/
     helicity = 0.0;
     for(j=0;j<3;j++){
@@ -108,9 +113,14 @@ int main(int argc, char **argv){
     for(j=0;j<9;j++){
       gas_eigenvectors[9*i + j] = eigenvectors[j];
     }
-
   } 
-  
+
+  /*Dump the data to disk*/
+  file = H5Fcreate(fileout, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  grp = H5Gcreate(file, "/ShearTensor", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  dump_data_block(file, EIGENVECTORS, gas_eigenvectors, n_points, 9);
+
+  H5Fclose (file);  
   return 0;
 }
 
@@ -122,6 +132,23 @@ float *malloc_data(int n_points, int n_cols){
     exit(1);
   }
   return data;
+}
+
+void dump_data_block(hid_t file, char * block_name, float *data, int n_points, int n_cols){
+  hid_t dataspace, datatype, status, dataset, plist;
+  hsize_t dims[2];
+
+
+  dims[0] = n_points;
+  dims[1] = n_cols;
+  dataspace = H5Screate_simple(2, dims, NULL); 
+
+  plist     = H5Pcreate(H5P_DATASET_CREATE);
+  H5Pset_chunk(plist, 2, dims);
+  dataset = H5Dcreate(file, block_name, 
+		      H5T_NATIVE_FLOAT, dataspace, H5P_DEFAULT, plist, H5P_DEFAULT);
+  status = H5Dwrite(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+		    H5P_DEFAULT, data);
 }
 
 float * load_data_block(hid_t file, char * block_name, int *n_points, int *n_cols){
