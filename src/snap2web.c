@@ -5,6 +5,7 @@
 #define DM_COORDINATES "/PartType1/Coordinates"
 #define DM_VELOCITIES "/PartType1/Velocities"
 #define GAS_GRADIENT "/PartType0/VelocityGradient"
+#define GAS_VELOCITIES "/PartType0/Velocities"
 #define USAGE "./snap2web.x snapfilename"
 #define XX  0
 #define XY  1
@@ -35,14 +36,21 @@
 */
 
 int Diagonalise3x3(double *M,double *L,double *vec);
-float * load_data_block(hid_t file, char * block_name, int *n_points, int *n_cols);
+float * load_data_block(hid_t file, char * block_name, int *n_points, int *n_cols);float *malloc_data(int n_points, int n_cols);
 int main(int argc, char **argv){
   hid_t file;
   float *gas_gradient;
+  float *gas_velocity;
+  float *gas_eigenvalues;
+  float *gas_eigenvectors;
+  float *gas_vorticity;
+  float *gas_helicity;
   int n_points, n_cols;
   double shear_tensor[9];
   double eigenvalues[3];
   double eigenvectors[9];
+  float vorticity[3];
+  float helicity;
   int i,j;
 
   if(argc!=2){
@@ -53,29 +61,67 @@ int main(int argc, char **argv){
   file = H5Fopen (argv[1], H5F_ACC_RDONLY, H5P_DEFAULT);
   fprintf(stdout, "opening file %s\n", argv[1]);
 
+  /*load the input data*/
   gas_gradient = load_data_block(file, GAS_GRADIENT, &n_points, &n_cols);  
+  gas_velocity = load_data_block(file, GAS_VELOCITIES, &n_points, &n_cols);  
+
+  /*save memory for the outputs*/
+  gas_eigenvalues = malloc_data(n_points, 3);
+  gas_eigenvectors = malloc_data(n_points, 9);
+  gas_vorticity = malloc_data(n_points, 3);
+  gas_helicity = malloc_data(n_points, 1);
 
   for(i=0;i<n_points;i++){   
-    shear_tensor[XX] = -(gas_gradient[i*9 + XX] + gas_gradient[i*9 + XX]); 
-    shear_tensor[XY] = -(gas_gradient[i*9 + YY] + gas_gradient[i*9 + YY]); 
-    shear_tensor[XZ] = -(gas_gradient[i*9 + ZZ] + gas_gradient[i*9 + ZZ]); 
-    shear_tensor[XY] = -(gas_gradient[i*9 + XY] + gas_gradient[i*9 + YX]); 
-    shear_tensor[XZ] = -(gas_gradient[i*9 + XZ] + gas_gradient[i*9 + YZ]); 
-    shear_tensor[YZ] = -(gas_gradient[i*9 + YZ] + gas_gradient[i*9 + ZY]); 
+    shear_tensor[XX] = -0.5*(gas_gradient[i*9 + XX] + gas_gradient[i*9 + XX]); 
+    shear_tensor[XY] = -0.5*(gas_gradient[i*9 + YY] + gas_gradient[i*9 + YY]); 
+    shear_tensor[XZ] = -0.5*(gas_gradient[i*9 + ZZ] + gas_gradient[i*9 + ZZ]); 
+    shear_tensor[XY] = -0.5*(gas_gradient[i*9 + XY] + gas_gradient[i*9 + YX]); 
+    shear_tensor[XZ] = -0.5*(gas_gradient[i*9 + XZ] + gas_gradient[i*9 + YZ]); 
+    shear_tensor[YZ] = -0.5*(gas_gradient[i*9 + YZ] + gas_gradient[i*9 + ZY]); 
     shear_tensor[YX] = shear_tensor[XY];
     shear_tensor[ZX] = shear_tensor[XZ];
     shear_tensor[ZY] = shear_tensor[YZ];
-    for(j=0;j<9;j++){
-      shear_tensor[j] *= 1.0/(2.0*HUBBLE);
-    }
 
-    /*Get the Eigenvalues and eigenvectors*/
+    /*Get the Eigenvalues and eigenvectors from the shear tensor*/
     Diagonalise3x3(shear_tensor, eigenvalues,eigenvectors);
 
-  }
+    /*Computes the vorticity*/
+    vorticity[0] = gas_gradient[i*9 +ZY] - gas_gradient[i*9 + YZ];
+    vorticity[1] = gas_gradient[i*9 +XZ] - gas_gradient[i*9 + ZX];
+    vorticity[2] = gas_gradient[i*9 +YX] - gas_gradient[i*9 + XY];
+    if(i<10){
+      //      fprintf(stdout, "%f %f %f\n", vorticity[0], vorticity[1], vorticity[2]);
+    }
+    /*compute the helicity*/
+    helicity = 0.0;
+    for(j=0;j<3;j++){
+      helicity+= vorticity[j] * gas_velocity[i*3 + j];
+    }
 
- 
+    /*fill the arrays*/
+    gas_helicity[i] = helicity;
+
+    for(j=0;j<3;j++){
+      gas_eigenvalues[3*i + j] = eigenvalues[j];
+      gas_vorticity[3*i + j] = vorticity[j];
+    }
+    for(j=0;j<9;j++){
+      gas_eigenvectors[9*i + j] = eigenvectors[j];
+    }
+
+  } 
+  
   return 0;
+}
+
+float *malloc_data(int n_points, int n_cols){
+  float *data;
+  
+  if(!(data=malloc(sizeof(float) * n_points * n_cols))){
+    fprintf(stderr, "problem with data allocation\n");
+    exit(1);
+  }
+  return data;
 }
 
 float * load_data_block(hid_t file, char * block_name, int *n_points, int *n_cols){
