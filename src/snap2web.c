@@ -27,6 +27,7 @@ int main(int argc, char **argv){
   hid_t file;
   float *gas_gradient;
   int n_points, n_cols;
+  float shear
 
   if(argc!=2){
     fprintf(stderr, "USAGE:%s\n", USAGE);
