@@ -8,6 +8,9 @@
 #define GAS_GRADIENT "/PartType0/VelocityGradient"
 #define GAS_VELOCITIES "/PartType0/Velocities"
 #define EIGENVECTORS "/ShearTensor/Eigenvectors"
+#define EIGENVALUES "/ShearTensor/Eigenvalues"
+#define VORTICITY "/ShearTensor/Vorticity"
+#define HELICITY "/ShearTensor/Helicity"
 #define USAGE "./snap2web.x snapfilename fileout"
 #define XX  0
 #define XY  1
@@ -119,6 +122,9 @@ int main(int argc, char **argv){
   file = H5Fcreate(fileout, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
   grp = H5Gcreate(file, "/ShearTensor", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   dump_data_block(file, EIGENVECTORS, gas_eigenvectors, n_points, 9);
+  dump_data_block(file, EIGENVALUES, gas_eigenvalues, n_points, 3);
+  dump_data_block(file, VORTICITY, gas_vorticity, n_points, 3);
+  dump_data_block(file, HELICITY, gas_helicity, n_points, 1);
 
   H5Fclose (file);  
   return 0;
@@ -135,7 +141,7 @@ float *malloc_data(int n_points, int n_cols){
 }
 
 void dump_data_block(hid_t file, char * block_name, float *data, int n_points, int n_cols){
-  hid_t dataspace, datatype, status, dataset, plist;
+  hid_t dataspace, status, dataset, plist;
   hsize_t dims[2];
 
 
@@ -149,6 +155,11 @@ void dump_data_block(hid_t file, char * block_name, float *data, int n_points, i
 		      H5T_NATIVE_FLOAT, dataspace, H5P_DEFAULT, plist, H5P_DEFAULT);
   status = H5Dwrite(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
 		    H5P_DEFAULT, data);
+
+
+  status = H5Dclose(dataset);
+  status = H5Pclose(plist);
+  status = H5Sclose(dataspace);
 }
 
 float * load_data_block(hid_t file, char * block_name, int *n_points, int *n_cols){
