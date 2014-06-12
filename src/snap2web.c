@@ -33,6 +33,8 @@
   It takes as an input the fileame to the AREPO snapshot. It is assumed
   that this snapshot includes a file named VelocityGradient. This is usually
   constructed by postprocessing the AREPO snapshot first.
+
+  The output is written in HDF5 format.
   
   Author: Jaime Forero-Romero (Uniandes)
   Written: 12-June-2014
