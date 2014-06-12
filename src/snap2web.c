@@ -3,32 +3,54 @@
 #include <stdlib.h>
 #define DM_COORDINATES "/PartType1/Coordinates"
 #define DM_VELOCITIES "/PartType1/Velocities"
+#define GAS_GRADIENT "/PartType0/VelocityGradient"
+#define USAGE "./snap2web.x snapfilename"
+
+/*
+  Program to read AREPO snapshots and compute for each cell:
+  - Eigenvalues and Eigenvectors of the velocitiy shear tensor.
+  - The vorticity vector.
+  - The helicity scalar.
+
+  It takes as an input the fileame to the AREPO snapshot. It is assumed
+  that this snapshot includes a file named VelocityGradient. This is usually
+  constructed by postprocessing the AREPO snapshot first.
+  
+  Author: Jaime Forero-Romero (Uniandes)
+  Written: 12-June-2014
+  Modified: 
+
+*/
+
+float * load_data_block(hid_t file, char * block_name, int *n_points, int *n_cols);
 int main(int argc, char **argv){
-  hid_t           file, dset, dcpl, filespace,attr, group;    /* Handles */
-  hid_t dsetv_id, status_n, memspace;
-  H5D_layout_t    layout;
-  long long npoints;
-  float *data_pos;
-  float *data_vel;
-  int rank;
-  hsize_t dims[2];
-  int i;
-  int n_items;
-  FILE *binout;
-  float box;
+  hid_t file;
+  float *gas_gradient;
+  int n_points, n_cols;
+
+  if(argc!=2){
+    fprintf(stderr, "USAGE:%s\n", USAGE);
+    exit(1);
+  }
 
   file = H5Fopen (argv[1], H5F_ACC_RDONLY, H5P_DEFAULT);
   fprintf(stdout, "opening file %s\n", argv[1]);
 
-  group = H5Gopen(file, "/Header", H5P_DEFAULT);
-  attr = H5Aopen(group, "BoxSize", H5P_DEFAULT);
-  status_n = H5Aread(attr, H5T_NATIVE_FLOAT, &box);
+  gas_gradient = load_data_block(file, GAS_GRADIENT, &n_points, &n_cols);  
+ 
+  return 0;
+}
 
-  fprintf(stdout, "BoxSize %f\n", box);
+float * load_data_block(hid_t file, char * block_name, int *n_points, int *n_cols){
+  hid_t dset, filespace, status_n, memspace;
+  int rank;
+  hsize_t dims[2];
+  long long n_items;
+  float *data;
 
   /*READ DM coordinates*/
-  dset = H5Dopen2(file, DM_COORDINATES,H5P_DEFAULT);
-  fprintf(stdout, "getting dataset %s\n", DM_COORDINATES);
+  dset = H5Dopen2(file, block_name, H5P_DEFAULT);
+  fprintf(stdout, "getting dataset %s\n", block_name);
   filespace = H5Dget_space (dset);
 
   rank = H5Sget_simple_extent_ndims (filespace);
@@ -37,15 +59,29 @@ int main(int argc, char **argv){
   status_n = H5Sget_simple_extent_dims (filespace, dims, NULL);
   fprintf(stdout, "dimesions are: %d %d\n", (int)(dims[0]), (int)(dims[1]));
 
-  n_items = (int)dims[0] * (int)dims[1];
-  if(!(data_pos=malloc(sizeof(float) * n_items))){
+  *n_points = dims[0];
+  *n_cols = dims[1];
+
+  n_items = (long long)dims[0] * (long long)dims[1];
+  if(!(data=malloc(sizeof(float) * n_items))){
     fprintf(stderr, "problem with data allocation\n");
   }
   memspace = H5Screate_simple (rank,dims,NULL);  
   status_n = H5Dread (dset, H5T_NATIVE_FLOAT, memspace, filespace,
-		    H5P_DEFAULT, data_pos);
+		    H5P_DEFAULT, data);
+  return data;
+}
 
-  /*read DM velocities*/
+/*
+  group = H5Gopen(file, "/Header", H5P_DEFAULT);
+  attr = H5Aopen(group, "BoxSize", H5P_DEFAULT);
+  status_n = H5Aread(attr, H5T_NATIVE_FLOAT, &box);
+
+  fprintf(stdout, "BoxSize %f\n", box);
+
+
+
+
   dset = H5Dopen2(file, DM_VELOCITIES,H5P_DEFAULT);
   fprintf(stdout, "getting dataset %s\n", DM_VELOCITIES);
   filespace = H5Dget_space (dset);
@@ -85,4 +121,5 @@ int main(int argc, char **argv){
   return 0;
 }
 
+*/
 
