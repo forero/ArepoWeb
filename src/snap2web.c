@@ -7,6 +7,7 @@
 #define DM_VELOCITIES "/PartType1/Velocities"
 #define GAS_GRADIENT "/PartType0/VelocityGradient"
 #define GAS_VELOCITIES "/PartType0/Velocities"
+#define GAS_DENSITY "/PartType0/Density"
 #define EIGENVECTORS "/ShearTensor/Eigenvectors"
 #define EIGENVALUES "/ShearTensor/Eigenvalues"
 #define VORTICITY "/ShearTensor/Vorticity"
