@@ -16,9 +16,7 @@
 #define SHEET 1
 #define FILAMENT 2
 #define PEAK 3
-#define EIGEN1 0
-#define EIGEN2 1
-#define EIGEN3 2
+
 
 float * load_data_block(hid_t file, char * block_name, int *n_points, int *n_cols);
 float *malloc_data(int n_points, int n_cols);
