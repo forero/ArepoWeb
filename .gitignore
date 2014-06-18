@@ -1,3 +1,5 @@
+*.dat
+*.hdf5
 *~
 *.pyc
 # Object files
