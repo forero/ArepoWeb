@@ -20,8 +20,7 @@ void dump_data_block(hid_t file, char * block_name, float *data, int n_points, i
 		      H5T_NATIVE_FLOAT, dataspace, H5P_DEFAULT, plist, H5P_DEFAULT);
   status = H5Dwrite(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
 		    H5P_DEFAULT, data);
-
-
+  
   status = H5Dclose(dataset);
   status = H5Pclose(plist);
   status = H5Sclose(dataspace);
@@ -34,7 +33,6 @@ float * load_data_block(hid_t file, char * block_name, int *n_points, int *n_col
   long long n_items;
   float *data;
 
-  /*READ DM coordinates*/
   dset = H5Dopen2(file, block_name, H5P_DEFAULT);
   fprintf(stdout, "getting dataset %s\n", block_name);
   filespace = H5Dget_space (dset);
@@ -43,10 +41,14 @@ float * load_data_block(hid_t file, char * block_name, int *n_points, int *n_col
   fprintf(stdout, "rank is: %d\n", rank);
 
   status_n = H5Sget_simple_extent_dims (filespace, dims, NULL);
-  fprintf(stdout, "dimesions are: %d %d\n", (int)(dims[0]), (int)(dims[1]));
-
   *n_points = dims[0];
   *n_cols = dims[1];
+  if(rank==1){
+    dims[1] = 1;
+    *n_cols = 1;
+  }
+  fprintf(stdout, "dimesions are: %d %d\n", (int)(dims[0]), (int)(dims[1]));
+
 
   n_items = (long long)dims[0] * (long long)dims[1];
   if(!(data=malloc(sizeof(float) * n_items))){
